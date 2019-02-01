@@ -95,7 +95,7 @@ rn<= r0 when ins(19 downto 16)="0000" else
           r14 when ins(19 downto 16)="1110" else
           r15 when ins(19 downto 16)="1111" else
           "00000000000000000000000000000000" ;
-op2<="000000000000000000000000" && std_logic_vector(7 downto 0) when ins(25)='1' else
+op2<="000000000000000000000000" & ins(7 downto 0) when ins(25)='1' else
 	r0 when ins(3 downto 0)="0000" and ins(25)='0' else
      r1 when ins(3 downto 0)="0001" and ins(25)='0' else
      r2 when ins(3 downto 0)="0010" and ins(25)='0' else
@@ -153,30 +153,33 @@ r13<= rd when ins(15 downto 12)="1101" ;
 r14<= rd when ins(15 downto 12)="1110" ;
 r15<= rd when ins(15 downto 12)="1111" ;
 
-addm<=std_logic_vector(signed(rn) + signed(ins(11 downto 0)) when instr_class=DT and ins(23)='1' else
-		std_logic_vector(signed(rn) - signed(ins(11 downto 0)) when instr_class=DT and ins(23)='0' else
+addm<=std_logic_vector(signed(rn) + signed(ins(11 downto 0))) when instr_class=DT and ins(23)='1' else
+		std_logic_vector(signed(rn) - signed(ins(11 downto 0))) when instr_class=DT and ins(23)='0' else
 		"00000000000000000000000000000000" ;
 wd<=output when instr_class=DT and writeen='1' else
 	"00000000000000000000000000000000" ;
 		   
 offset<= ins(23 downto 0);
 pcoffset <= std_logic_vector(resize(signed(offset(23 downto 0)&"00"), pcoffset'length));
-ztemp<=(signed(rn) - signed(op2));
+ztemp<=to_integer(signed(rn) - signed(op2));
 adim<=r15 ;
 process(clock)
 begin 
 if(rising_edge(clock)) then 
 	if instr_class=DP and ins(20)='0' then
 		rd<=output ;
-	elsif instr_class=Dp and ins(20)='1' then
+		r15<=std_logic_vector(signed(r15) +4) ;
+	elsif instr_class=DP and ins(20)='1' then
 		if ztemp=0 then z<='1' ;
 		else z<='0';
 		end if;
+		r15<=std_logic_vector(signed(r15) +4) ;
 	elsif instr_class=DT then
 		if ins(20)='0' then writeen<='1' ;
 		else writeen<='0' ;
 			rd<=output ;
 		end if;
+		r15<=std_logic_vector(signed(r15) +4) ;
 	elsif instr_class=branch then
 		r15<=std_logic_vector(signed(r15) + signed(pcoffset)+8) ;
 	end if;
