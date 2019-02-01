@@ -56,7 +56,7 @@ signal I_bit : std_logic;
 signal shift_spec : std_logic_vector (7 downto 0);
 signal k : integer;
 signal ztemp:integer;
-signal writeen: std_logic;
+signal writeen:std_logic:= '0';
 begin
 cond <= ins(31 downto 28);
 F_field <= ins(27 downto 26);
@@ -151,14 +151,14 @@ r11<= rd when ins(15 downto 12)="1011" ;
 r12<= rd when ins(15 downto 12)="1100" ;
 r13<= rd when ins(15 downto 12)="1101" ;
 r14<= rd when ins(15 downto 12)="1110" ;
-r15<= rd when ins(15 downto 12)="1111" ;
+--r15<= rd when ins(15 downto 12)="1111" ;
 
 addm<=std_logic_vector(signed(rn) + signed(ins(11 downto 0))) when instr_class=DT and ins(23)='1' else
 		std_logic_vector(signed(rn) - signed(ins(11 downto 0))) when instr_class=DT and ins(23)='0' else
 		"00000000000000000000000000000000" ;
 wd<=output when instr_class=DT and writeen='1' else
 	"00000000000000000000000000000000" ;
-		   
+en<=writeen;
 offset<= ins(23 downto 0);
 pcoffset <= std_logic_vector(resize(signed(offset(23 downto 0)&"00"), pcoffset'length));
 ztemp<=to_integer(signed(rn) - signed(op2));
