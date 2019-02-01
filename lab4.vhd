@@ -46,6 +46,7 @@ architecture Behavioral of alu is
 signal r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,rn,rd,op2,rm,rs,pcoffset,output : std_logic_vector(31 downto 0) := "00000000000000000000000000000000";
 signal offset : std_logic_vector(23 downto 0);
 signal z: std_logic;
+signal regis: std_logic_vector(3 downto 0):= "0000";
 type instr_class_type is (DP, DT, branch, unknown);
 type i_decoded_type is (add,sub,cmp,mov,ldr,str,beq,bne,b,unknown);
 signal instr_class : instr_class_type;
@@ -57,6 +58,7 @@ signal shift_spec : std_logic_vector (7 downto 0);
 signal k : integer;
 signal ztemp:integer;
 signal writeen:std_logic:= '0';
+signal regchange:std_logic:='0' ;
 begin
 cond <= ins(31 downto 28);
 F_field <= ins(27 downto 26);
@@ -136,21 +138,7 @@ output<= std_logic_vector(signed(rn) + signed(op2)) when i_decoded=add else
                              r14 when ins(15 downto 12)="1110" and i_decoded=str else
                              r15 when ins(15 downto 12)="1111" and i_decoded=str else
 							"00000000000000000000000000000000" ;
-r0<= rd when ins(15 downto 12)="0000" ;
-r1<= rd when ins(15 downto 12)="0001" ;
-r2<= rd when ins(15 downto 12)="0010" ;
-r3<= rd when ins(15 downto 12)="0011" ;
-r4<= rd when ins(15 downto 12)="0100" ;
-r5<= rd when ins(15 downto 12)="0101" ;
-r6<= rd when ins(15 downto 12)="0110" ;
-r7<= rd when ins(15 downto 12)="0111" ;
-r8<= rd when ins(15 downto 12)="1000" ;
-r9<= rd when ins(15 downto 12)="1001" ;
-r10<= rd when ins(15 downto 12)="1010" ;
-r11<= rd when ins(15 downto 12)="1011" ;
-r12<= rd when ins(15 downto 12)="1100" ;
-r13<= rd when ins(15 downto 12)="1101" ;
-r14<= rd when ins(15 downto 12)="1110" ;
+
 --r15<= rd when ins(15 downto 12)="1111" ;
 
 addm<=std_logic_vector(signed(rn) + signed(ins(11 downto 0))) when instr_class=DT and ins(23)='1' else
@@ -159,15 +147,37 @@ addm<=std_logic_vector(signed(rn) + signed(ins(11 downto 0))) when instr_class=D
 wd<=output when instr_class=DT and writeen='1' else
 	"00000000000000000000000000000000" ;
 en<=writeen;
+
+r0<= rd when regis="0000" and regchange='1';
+    r1<= rd when regis="0001" and regchange='1';
+    r2<= rd when regis="0010" and regchange='1';
+    r3<= rd when regis="0011" and regchange='1';
+    r4<= rd when regis="0100" and regchange='1';
+    r5<= rd when regis="0101" and regchange='1';
+    r6<= rd when regis="0110" and regchange='1';
+    r7<= rd when regis="0111" and regchange='1';
+    r8<= rd when regis="1000" and regchange='1';
+    r9<= rd when regis="1001" and regchange='1';
+    r10<= rd when regis="1010" and regchange='1';
+    r11<= rd when regis="1011" and regchange='1';
+    r12<= rd when regis="1100" and regchange='1';
+    r13<= rd when regis="1101" and regchange='1';
+    r14<= rd when regis="1110" and regchange='1';
+
 offset<= ins(23 downto 0);
 pcoffset <= std_logic_vector(resize(signed(offset(23 downto 0)&"00"), pcoffset'length));
 ztemp<=to_integer(signed(rn) - signed(op2));
 adim<=r15 ;
 process(clock)
 begin 
-if(rising_edge(clock)) then 
+if(rising_edge(clock)) then
+    writeen<='0';
+    regis<=ins(15 downto 12); 
+    if ins(26)=ins(20) then regchange<='1';
+    else regchange<='0';
+    end if;
 	if instr_class=DP and ins(20)='0' then
-		rd<=output ;
+		rd<=output;
 		r15<=std_logic_vector(signed(r15) +4) ;
 	elsif instr_class=DP and ins(20)='1' then
 		if ztemp=0 then z<='1' ;
@@ -181,7 +191,10 @@ if(rising_edge(clock)) then
 		end if;
 		r15<=std_logic_vector(signed(r15) +4) ;
 	elsif instr_class=branch then
-		r15<=std_logic_vector(signed(r15) + signed(pcoffset)+8) ;
+	   if cond="0000" and z='0' then r15<=std_logic_vector(signed(r15) +4) ;
+	   elsif cond="0001" and z='1' then r15<=std_logic_vector(signed(r15) +4) ;
+	   else r15<=std_logic_vector(signed(r15) + signed(pcoffset)+8) ;
+	   end if ;
 	end if;
 end if ;
 end process ;
