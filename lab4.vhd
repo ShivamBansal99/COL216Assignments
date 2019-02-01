@@ -43,7 +43,7 @@ entity alu is
 end alu;
 
 architecture Behavioral of alu is
-signal r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,rn,rd,op2,rm,rs,pcoffset,output : std_logic_vector(31 downto 0) := "00000000000000000000000000000000";
+signal r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,rn,rd,op2,rm,rs,pcoffset,output,outputdelay,addmdelay : std_logic_vector(31 downto 0) := "00000000000000000000000000000000";
 signal offset : std_logic_vector(23 downto 0);
 signal z: std_logic;
 signal regis: std_logic_vector(3 downto 0):= "0000";
@@ -142,11 +142,13 @@ output<= std_logic_vector(signed(rn) + signed(op2)) when i_decoded=add else
 --r15<= rd when ins(15 downto 12)="1111" ;
 
 addm<=std_logic_vector(signed(rn) + signed(ins(11 downto 0))) when instr_class=DT and ins(23)='1' else
-		std_logic_vector(signed(rn) - signed(ins(11 downto 0))) when instr_class=DT and ins(23)='0' else
-		"00000000000000000000000000000000" ;
-wd<=output when instr_class=DT and writeen='1' else
+		std_logic_vector(signed(rn) - signed(ins(11 downto 0))) when instr_class=DT and ins(23)='0' ;
+wd<=output when writeen='1' else
 	"00000000000000000000000000000000" ;
 en<=writeen;
+
+writeen<= '1' when ins(20)='0' and instr_class=DT else
+            '0';
 
 r0<= rd when regis="0000" and regchange='1';
     r1<= rd when regis="0001" and regchange='1';
@@ -171,7 +173,7 @@ adim<=r15 ;
 process(clock)
 begin 
 if(rising_edge(clock)) then
-    writeen<='0';
+    outputdelay<=output;
     regis<=ins(15 downto 12); 
     if ins(26)=ins(20) then regchange<='1';
     else regchange<='0';
@@ -185,8 +187,7 @@ if(rising_edge(clock)) then
 		end if;
 		r15<=std_logic_vector(signed(r15) +4) ;
 	elsif instr_class=DT then
-		if ins(20)='0' then writeen<='1' ;
-		else writeen<='0' ;
+		if ins(20)/='0' then 
 			rd<=output ;
 		end if;
 		r15<=std_logic_vector(signed(r15) +4) ;
