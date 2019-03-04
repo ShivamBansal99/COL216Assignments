@@ -60,6 +60,8 @@ elsif state=decode and ins_class=DT then
     state<=addr;
 elsif state=addr and ld_bit='0'  then
     state<=mem_wr;
+elsif state=mem_wr then
+    state<=fetch ;
 elsif state=addr and ld_bit='1'  then
      state<=mem_rd;
 elsif state=mem_rd   then

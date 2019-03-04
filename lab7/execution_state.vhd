@@ -33,7 +33,9 @@ use work.decoder.all;
 
 entity execution_state is
   Port (clock: in std_logic;
-        step,go,instr: in std_logic;
+        step: in std_logic;
+        go: in std_logic;
+        instr: in std_logic;
         ctr_state: in controlStates;
         state1: out executionStates );
 end execution_state;

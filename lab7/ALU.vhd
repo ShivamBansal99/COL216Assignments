@@ -48,12 +48,14 @@ end ALU;
 architecture Behavioral of ALU is
 Signal Z : std_logic:='0';
 signal ztemp: integer:=0;
+signal routtemp: std_logic_vector(31 downto 0) ;
 begin
 
-rout<= std_logic_vector(signed(r1) + signed(r2)) when ctr_state=fetch or (ctr_state=addr and instruction(23)='1') or (ctr_state=arith and ins=add) else
-       std_logic_vector(signed(r1) - signed(r2)) when (ctr_state=arith and ins=sub) or (ctr_state=addr and instruction(23)='0') else
-       std_logic_vector(signed(r1) + signed(r2)+4) when ctr_state=brn else
-         "00000000000000000000000000000000";
+routtemp<= std_logic_vector(signed(r1) - signed(r2)) when (ctr_state=arith and (ins=sub or ins=cmp)) or (ctr_state=addr and instruction(23)='0')  else
+       std_logic_vector(signed(r1) + signed(r2)) when (ctr_state=arith and (ins=add or ins=mov)) or (ctr_state=addr and instruction(23)='1') or ctr_state=fetch else
+       std_logic_vector(signed(r1) + signed(r2)+4) when ctr_state=brn and (instruction(31 downto 28)="1110" or (instruction(31 downto 28)="0000" and z='0') or (instruction(31 downto 28)="0001" and z='1')) else
+       routtemp;
+rout<=routtemp ;
 Ztemp<=to_integer(signed(r1) - signed(r2));
 flags<=z;
 process(clk)

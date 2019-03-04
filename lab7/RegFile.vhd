@@ -44,7 +44,9 @@ entity RegFile is
             PCwe:in std_logic;
             clk: in std_logic;
             ctr_state: in controlStates;
-            instr_dec:  in i_decoded_type
+            instr_dec:  in i_decoded_type ;
+            instruction: in std_logic_vector(31 downto 0)
+            --reset: in std_logic 
            );
 end RegFile;
 
@@ -54,8 +56,11 @@ signal regist : rig:=(others=>(others=>'0'));
 begin
 
 r1out<=regist(to_integer(unsigned(r1)));
-r2out<=regist(to_integer(unsigned(r2)));
+r2out<= "000000000000000000000000" & instruction(7 downto 0) when (instruction(27 downto 25)="001") else
+       regist(to_integer(unsigned(r2))) ;
 PCout<=regist(15);
+--reset condition
+--regist<=(others=>(others=>'0')) when reset='1' ;
 
 process(clk)
 begin

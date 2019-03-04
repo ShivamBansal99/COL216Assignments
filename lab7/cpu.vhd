@@ -32,6 +32,13 @@ use work.decoder.all;
 --library UNISIM;
 --use UNISIM.VComponents.all;
 
+
+
+
+--
+--WOrk REmainaing: 1.Ledo,2.debounce,3.reset finalisation and trying in simulation along with button allotment in xdc,4.something with progselect and dispselect
+--
+
 entity cpu is
     Port (
       clk: in std_logic;
@@ -39,8 +46,8 @@ entity cpu is
       step : in std_logic;
       go: in std_logic;
       instr: in std_logic;
-      progselect : in std_logic_vector(2 downto 0);
-      dispselect : in std_logic_vector(3 downto 0);
+     --progselect : in std_logic_vector(2 downto 0);
+      --dispselect : in std_logic_vector(3 downto 0);
       ledo : out std_logic_vector(15 downto 0)
        );
   
@@ -67,7 +74,9 @@ component RegFile is
             PCwe:in std_logic;
             clk: in std_logic;
             ctr_state: in controlStates;
-            instr_dec:  in i_decoded_type
+            instr_dec:  in i_decoded_type;
+            instruction: in std_logic_vector(31 downto 0)
+            --reset: in std_logic
            );
 end component;
 component ALU is
@@ -122,23 +131,25 @@ signal ctrstate: controlStates;
 signal instr_class: instr_class_type;
 signal i_decode: i_decoded_type;
 signal exestate: executionStates;
+signal firstcycle:std_logic:='1' ;
+signal dead:std_logic:='0' ;
 --signal localpc: std_logic_vector(31 downto 0):="00000000000000000000000000000000";
 begin
-Reg: RegFile port map(r1reg,r2reg,r1out,r2out,wadreg,wereg,wdata,PCdin,PCout,PCwereg,clk,ctrstate,i_decode);
+Reg: RegFile port map(r1reg,r2reg,r1out,r2out,wadreg,wereg,wdata,PCdin,PCout,PCwereg,clk,ctrstate,i_decode,instruction);
 Al: ALU  port map(i_decode,r1alu,r2alu,routalu,flags,fen,cen,clk,ctrstate,instruction);
 cs: controlstate port map(clk,ld_bit,i_decode,instr_class,ctrstate,cen);
-es: execution_state port map(clk,step,go,instr,ctrstate);
+es: execution_state port map(clk,step1,go1,instr1,ctrstate,exestate);
 ram: dist_mem_gen_1 port map(aram,ramd,clk,ramwe,ramspo);
 rom: dist_mem_gen_0 port map(arom,instruction);
 Ins_decoder: instruction_Incoder port map(clk,instruction,i_decode,instr_class);
 
 --cen for pc
-cen<='1' when go1='1' or instr1='1' or step1='1' else
+cen<='1' when (exestate=oneinstr or exestate=onestep or exestate=cont) and dead='0' else
     '0' ;
 --reg and pc sorted
 PCdin<=routalu when ctrstate=fetch or ctrstate=brn else
     "00000000000000000000000000000000" ;
-PCwereg<='1' when (ctrstate=fetch or ctrstate=brn) and cen='1' else
+PCwereg<='1' when (ctrstate=fetch or ctrstate=brn) and cen='1' and firstcycle='0' else
         '0' ;
 r1reg<=instruction(19 downto 16) ;
 r2reg<=instruction(3 downto 0) when instr_class=DP else
@@ -155,7 +166,7 @@ r1alu<=PCout when ctrstate =fetch or ctrstate=brn else
 r2alu<=r2out when ctrstate=arith or ctrstate=res2RF else
     "00000000000000000000000000000100" when ctrstate=fetch else
     "00000000000000000000" & instruction(11 downto 0) when ctrstate=addr or ctrstate=mem_wr or ctrstate=mem_rd or ctrstate=mem2RF else
-    std_logic_vector(resize(4*unsigned(instruction(23 downto 0)), 32)) when ctrstate=brn and (instruction(31 downto 28)="1110" or (instruction(31 downto 28)="0000" and flags='1') or (instruction(31 downto 28)="0001" and flags='0') ) else 
+    std_logic_vector(resize(4*unsigned(instruction(23 downto 0)), 32)) when ctrstate=brn and (instruction(31 downto 28)="1110" or (instruction(31 downto 28)="0000" and flags='0') or (instruction(31 downto 28)="0001" and flags='1') ) else 
     "00000000000000000000000000000000"  ;
 fen<='1' when ctrstate=arith else
  '0' ;
@@ -164,8 +175,8 @@ fen<='1' when ctrstate=arith else
  --ram
  aram<=routalu(9 downto 2) when instr_class=DT else
     "00000000" ;
-ramd<=routalu ;
-ramwe<='1' when ctrstate<=mem_wr else
+ramd<=r2out ;
+ramwe<='1' when ctrstate=mem_wr else
         '0' ;
 --debounce to be done
 step1<=step ;
@@ -174,4 +185,10 @@ instr1<=instr ;
 --control state
 ld_bit<='1' when i_decode=ldr else
     '0' ;
+--firstcycle and reset
+firstcycle<='0' when ctrstate=decode ;--else
+           --   '1' when reset='1' ; 
+--dead
+dead<='1' when instruction="00000000000000000000000000000000" and firstcycle='0' ;
+
 end Behavioral;
